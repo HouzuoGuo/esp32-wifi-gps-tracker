@@ -11,8 +11,8 @@
 struct wifi_access_point
 {
     int32_t rssi;
-    String ssid;
-    String mac;
+    char ssid[64];
+    char mac[32];
     wifi_auth_mode_t auth_mode;
 };
 
@@ -39,4 +39,4 @@ If no open access point exists, the function will return -1.
 */
 int wifi_get_random_open_ap(struct wifi_access_point *out);
 
-#endif // include
+#endif // include guard

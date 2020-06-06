@@ -24,7 +24,7 @@
 //
 // All functions return the number of output bytes or -1 on error. If the
 // output buffer is too small, the result will silently be truncated.
-// Houzuo Guo <guohouzuo@gmail.com> obtained the source code and made minor adjustments on 2020-05.
+// Houzuo Guo <guohouzuo@gmail.com> obtained the source code and made minor adjustments in 2020-05.
 
 #ifndef ESP_WIFI_GPS_TRACKER_TWOFA_BASE32_H
 #define ESP_WIFI_GPS_TRACKER_TWOFA_BASE32_H

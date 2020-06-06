@@ -14,7 +14,7 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-// Houzuo Guo <guohouzuo@gmail.com> obtained the source code and made minor adjustments on 2020-05.
+// Houzuo Guo <guohouzuo@gmail.com> obtained the source code and made minor adjustments in 2020-05.
 #ifndef ESP_WIFI_GPS_TRACKER_TWOFA_SHA1_H
 #define ESP_WIFI_GPS_TRACKER_TWOFA_SHA1_H
 

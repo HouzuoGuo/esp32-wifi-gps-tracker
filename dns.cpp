@@ -19,7 +19,7 @@ char **resolve_txt(char *resolver_ip, int port, char *name, int timeout_sec)
     {
         return NULL;
     }
-    Serial.printf("%s: resolving %s using resolver %s:%d\n", name, resolver_ip, port);
+    Serial.printf("%s: resolving %s using resolver %s:%d\n", __func__, name, resolver_ip, port);
     char **ret = NULL;
     // The DNS query uses a randomly generated transaction ID
     char tr_id[] = {rand() % 128, rand() % 128};
@@ -138,6 +138,10 @@ char **resolve_txt(char *resolver_ip, int port, char *name, int timeout_sec)
         ret[recv_entry_i] = NULL;
     }
 clean_up:
+    if (sock != -1)
+    {
+        close(sock);
+    }
     free(query_packet);
     free(name_copy);
     return ret;

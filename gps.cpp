@@ -12,10 +12,10 @@ void gps_setup()
     Serial1.begin(9600, SERIAL_8N1, 12, 15);
 }
 
-void gps_read()
+void gps_read(int duration_sec)
 {
     long start = millis();
-    while (millis() - start < 1000)
+    while (millis() - start < duration_sec * 1000)
     {
         while (Serial1.available())
             gps.encode(Serial1.read());

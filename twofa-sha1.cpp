@@ -40,7 +40,7 @@
  *
  *****************************************************************************
 */
-// Houzuo Guo <guohouzuo@gmail.com> obtained the source code and made minor adjustments on 2020-05.
+// Houzuo Guo <guohouzuo@gmail.com> obtained the source code and made minor adjustments in 2020-05.
 
 /*
 According to https://www.espressif.com/sites/default/files/documentation/esp32_technical_reference_manual_en.pdf

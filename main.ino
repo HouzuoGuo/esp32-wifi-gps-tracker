@@ -1,27 +1,15 @@
 // esp32-wifi-gps-tracker is a GPS tracker program that uses nearby open WiFi hotspots to transmit tracked object's location.
 
 #include <Arduino.h>
+#include <WiFi.h>
 #include <time.h>
 #include "personalisation.hh"
+#include "twofa-code-gen.hh"
 #include "gps.hh"
 #include "oled.hh"
 #include "wifi.hh"
-#include "twofa-code-gen.hh"
-
-int yisleap(int year)
-{
-    return (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0);
-}
-
-int get_yday(int mon, int day, int year)
-{
-    static const int days[2][13] = {
-        {0, 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334},
-        {0, 0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335}};
-    int leap = yisleap(year);
-
-    return days[leap][mon] + day;
-}
+#include "dns.hh"
+#include "laitos-cmd.hh"
 
 void setup()
 {
@@ -48,13 +36,11 @@ void loop()
     oled.display();
     wifi_scan();
     // Display open APs and all APs
-    oled_disp_open_aps();
-    gps_read(); // takes a second
-    delay(4000);
-    oled_disp_all_aps();
-    gps_read(); // takes a second
-    delay(4000);
-    // Connect to an open AP
+    //oled_disp_open_aps();
+    // gps_read(5);
+    // oled_disp_all_aps();
+    // gps_read(5);
+    // Connect to an open AP or the fallback home AP
     oled.clear();
     struct wifi_access_point open_ap;
     int i = wifi_get_random_open_ap(&open_ap);
@@ -72,18 +58,52 @@ void loop()
         oled.drawStringMaxWidth(0, 3 * OLED_FONT_HEIGHT_PX, 200, open_ap.mac);
         oled.drawStringMaxWidth(0, 4 * OLED_FONT_HEIGHT_PX, 200, String(open_ap.rssi));
         oled.display();
-        wifi_connect((char *)open_ap.ssid.c_str(), NULL, 15);
+        wifi_connect(open_ap.ssid, NULL, 15);
     }
     // Display AP connection status
     oled_disp_wifi_ap_status();
-    gps_read(); // takes a second
-    delay(4000);
+    gps_read(5);
     // Display GPS status
     oled_disp_gps_data();
-    gps_read(); // takes a second
-    delay(4000);
+    gps_read(5);
+    // Send a message processor command to laitos server
+    if (WiFi.isConnected())
+    {
+        struct gps_data data = gps_get_data();
+        int code1 = twofa_generate_code(LAITOS_PASS, data.unix_time / 30);
+        Serial.printf("twofa code: %d\n", code1);
+        int code2 = twofa_generate_code(LAITOS_PASS_REVERSE, data.unix_time / 30);
+        Serial.printf("twofa code: %d\n", code2);
 
-    struct gps_data data = gps_get_data();
-    int n = generateCode("abcdefg", 1590246816 / 30);
-    Serial.printf("twofa code: %d\n", n);
+        char cmd[254] = {};
+        Serial.printf("ssid: %s\n", WiFi.SSID().c_str());
+        snprintf(cmd, sizeof(cmd), "%d%d.0m%s%c", code1, code2, WiFi.SSID().c_str(), SUBJ_REPORT_FIELD_SEP);
+        Serial.printf("cmd: %s\n", cmd);
+
+        char *app_cmd = get_app_cmd_with_dtmf(cmd);
+        Serial.printf("app_cmd: %s\n", app_cmd);
+
+        char *dns_q = get_laitos_dns_query(app_cmd, LAITOS_DOMAIN_NAME);
+        Serial.printf("query: %s\n", dns_q);
+
+        char dns_srv[32] = {};
+        strcpy(dns_srv, WiFi.dnsIP().toString().c_str());
+        Serial.printf("dns_srv: %s\n", dns_srv);
+
+        char **result = resolve_txt(dns_srv, 53, dns_q, 3);
+        if (result == NULL)
+        {
+            Serial.println("resolution failure");
+        }
+        else
+        {
+            Serial.println("resolution succeeded");
+            for (char **it = result; *it != NULL; ++*it)
+            {
+                Serial.printf("resolution result: %s\n", *it);
+            }
+        }
+        free(dns_q);
+        free(app_cmd);
+    }
 }

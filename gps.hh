@@ -3,8 +3,8 @@
 
 // gps_setup initialises GPS chip, the one producing location data over a serial connection.
 void gps_setup();
-// gps_read spends at most 1 second to read and interpret the latest position output from GPS chip.
-void gps_read();
+// gps_read reads and interprets the latest position and time output from GPS chip for the specified duration.
+void gps_read(int duration_sec);
 
 // gps_data describes the latest coordinates and clock time read from GPS.
 struct gps_data

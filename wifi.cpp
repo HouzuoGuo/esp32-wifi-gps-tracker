@@ -1,3 +1,4 @@
+#include <Arduino.h>
 #include <WiFi.h>
 #include "wifi.hh"
 
@@ -6,6 +7,7 @@ int wifi_ap_result_next = 0;
 
 void wifi_scan()
 {
+    Serial.printf("%s: scan begins\n", __func__);
     wifi_ap_result_next = 0;
     WiFi.scanDelete();
     // WiFi scan must be done in station mode without any active connection
@@ -23,19 +25,30 @@ void wifi_scan()
     {
         num_stations = WIFI_MAX_DISCOVERED_APS;
     }
-    for (; wifi_ap_result_next < num_stations; ++wifi_ap_result_next)
+    Serial.printf("%s: found %d stations\n", __func__, num_stations);
+    for (int i = 0; i < num_stations; ++i)
     {
+        const char *ssid = WiFi.SSID(i).c_str();
+        const char *mac = WiFi.BSSIDstr(i).c_str();
+        if (strlen(ssid) == 0 || strlen(mac) == 0)
+        {
+            // Ignore hidden SSID
+            continue;
+        }
         struct wifi_access_point ap;
-        ap.ssid = WiFi.SSID(wifi_ap_result_next);
-        ap.rssi = WiFi.RSSI(wifi_ap_result_next);
-        ap.mac = WiFi.BSSIDstr(wifi_ap_result_next);
-        ap.auth_mode = WiFi.encryptionType(wifi_ap_result_next);
-        wifi_aps[wifi_ap_result_next] = ap;
+        strncpy(ap.ssid, ssid, sizeof(ap.ssid));
+        ap.ssid[sizeof(ap.ssid) - 1] = NULL;
+        strncpy(ap.mac, mac, sizeof(ap.mac));
+        ap.mac[sizeof(ap.mac) - 1] = NULL;
+        ap.rssi = WiFi.RSSI(i);
+        ap.auth_mode = WiFi.encryptionType(i);
+        wifi_aps[wifi_ap_result_next++] = ap;
     }
 }
 
 wl_status_t wifi_connect(char *ssid, char *pass, int timeout_sec)
 {
+    Serial.printf("%s: connecting to %s\n", __func__, ssid);
     // Disconnect from previously associated AP
     WiFi.disconnect(true, true);
     WiFi.mode(WIFI_MODE_STA);
@@ -49,12 +62,14 @@ wl_status_t wifi_connect(char *ssid, char *pass, int timeout_sec)
         ret = WiFi.status();
         if (ret == WL_CONNECTED)
         {
+            Serial.printf("%s: connected to %s\n", __func__, ssid);
             return ret;
         }
         delay(200);
     }
     // Disconnect and abort after timeout
     WiFi.disconnect(true, true);
+    Serial.printf("%s: failed to connect to %s, code is %d\n", __func__, ssid, ret);
     return ret;
 }
 
@@ -71,6 +86,7 @@ int wifi_get_random_open_ap(struct wifi_access_point *out)
     }
     if (open_ap_count == 0)
     {
+        Serial.printf("%s: cannot find an open WiFi\n", __func__);
         return -1;
     }
     // Pick a random open AP
@@ -82,6 +98,7 @@ int wifi_get_random_open_ap(struct wifi_access_point *out)
             if (chosen_ap == 0)
             {
                 *out = wifi_aps[i];
+                Serial.printf("%s: found an open WiFi, index %d, SSID %s\n", __func__, i, wifi_aps[i].rssi);
                 return i;
             }
             --chosen_ap;
