@@ -275,7 +275,7 @@ char *laitos_get_tracking_cmd(const char *current_wifi_name, struct gps_data gps
     */
     int code1 = twofa_generate_code(LAITOS_PASS, gps_data.unix_time / 30);
     int code2 = twofa_generate_code(LAITOS_PASS_REVERSE, gps_data.unix_time / 30);
-    // The WiFi names are artifically capped at 20 characters each
+    // Plenty of room for the entire app command including nearby AP names, though they cannot all fit into a DNS query.
     char *ret = (char *)calloc(300, 1);
     snprintf(ret, 300 - 5,
              "%06d%06d"
@@ -283,8 +283,8 @@ char *laitos_get_tracking_cmd(const char *current_wifi_name, struct gps_data gps
              "%c"
              "%c"
              "%c"
-             "esp32%c"
-             "%dsats A%dm %f %f near ",
+             "%c"
+             "Sat%dA%dmL%fL%f ",
              code1, code2,
              current_wifi_name, SUBJ_REPORT_FIELD_SEP,
              SUBJ_REPORT_FIELD_SEP,
@@ -293,7 +293,8 @@ char *laitos_get_tracking_cmd(const char *current_wifi_name, struct gps_data gps
              SUBJ_REPORT_FIELD_SEP,
              gps_data.satellites, (int)gps_data.altitude_metres, gps_data.latitude, gps_data.longitude, SUBJ_REPORT_FIELD_SEP);
 
-    for (int i = 0; i < 4 && nearby_aps[i] != NULL; i++)
+    // All WiFi AP names are artifically capped at 20 characters each
+    for (int i = 0; i < 5 && nearby_aps[i] != NULL; i++)
     {
         char shortened_wifi_name[20] = {};
         snprintf(shortened_wifi_name, sizeof(shortened_wifi_name) - 1, nearby_aps[i]);

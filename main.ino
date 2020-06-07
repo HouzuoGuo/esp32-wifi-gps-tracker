@@ -70,44 +70,71 @@ void loop()
     if (WiFi.isConnected())
     {
         struct gps_data gps_data = gps_get_data();
-        // Collect list of nearly WiFi APs
+        /*
+        Collect a short list of nearby WiFi APs to send along with the tracker report.
+        Not all of them are going to fit into a DNS query, that is OK, the functions will
+        truncate the report command to the maximum accepted length.
+        */
         char *nearby_aps[5] = {};
+        int nearby_aps_i = 0;
         for (int i = 0; i < wifi_ap_result_next && i < 5; ++i)
         {
-            nearby_aps[i] = wifi_aps[i].ssid;
-            Serial.printf("nearby wifi %d: %s\n", i, nearby_aps[i]);
+            if (strcmp(wifi_aps[i].ssid, WiFi.SSID().c_str()) == 0)
+            {
+                continue; // skip the currently connected AP
+            }
+            nearby_aps[nearby_aps_i] = wifi_aps[i].ssid;
+            Serial.printf("%s: nearby wifi %d: %s\n", __func__, i, nearby_aps[nearby_aps_i]);
+            ++nearby_aps_i;
         }
 
         char *tracking_cmd = laitos_get_tracking_cmd(WiFi.SSID().c_str(), gps_data, nearby_aps);
-        Serial.printf("tracking cmd: %s\n", tracking_cmd);
+        Serial.printf("%s: laitos tracking report cmd: %s\n", __func__, tracking_cmd);
 
         char *encoded_cmd = laitos_encode_dtmf_sequences(tracking_cmd);
-        Serial.printf("after encoding: %s\n", encoded_cmd);
+        Serial.printf("%s: laitos command after DTMF encoding: %s\n", __func__, encoded_cmd);
 
         char *dns_q = laitos_get_dns_query_name(encoded_cmd, LAITOS_DOMAIN_NAME);
-        Serial.printf("query: %s\n", dns_q);
+        Serial.printf("%s: DNS query is: %s\n", __func__, dns_q);
 
         char dns_srv[32] = {};
         strcpy(dns_srv, WiFi.dnsIP().toString().c_str());
-        Serial.printf("dns_srv: %s\n", dns_srv);
+        Serial.printf("%s: DNS server is: %s\n", __func__, dns_srv);
+
+        // Let user know we're about to contact laitos DNS server
+        oled.clear();
+        oled.drawStringMaxWidth(0, 1 * OLED_FONT_HEIGHT_PX, 200, String("Sending ") + strlen(dns_q) + " bytes of info");
+        oled.drawStringMaxWidth(0, 2 * OLED_FONT_HEIGHT_PX, 200, String("To: ") + LAITOS_DOMAIN_NAME);
+        oled.drawStringMaxWidth(0, 3 * OLED_FONT_HEIGHT_PX, 200, String("Via WiFi: ") + String(WiFi.RSSI()) + " " + WiFi.SSID());
+        oled.drawStringMaxWidth(0, 4 * OLED_FONT_HEIGHT_PX, 200, String("DNS server: ") + WiFi.dnsIP().toString());
 
         char **result = dns_resolve_txt(dns_srv, 53, dns_q, 3);
         if (result == NULL)
         {
-            Serial.println("resolution failure");
+            Serial.printf("%s: failed to send laitos command over DNS\n", __func__);
+            oled.drawStringMaxWidth(0, 5 * OLED_FONT_HEIGHT_PX, 200, "IO failure :(");
         }
         else
         {
-            Serial.println("resolution succeeded");
+            Serial.printf("%s: successfully sent laitos command over DNS\n", __func__);
+            // Throw away the TXT record results for now
+            bool displayed = false;
             for (char **it = result; *it != NULL; ++it)
             {
-                Serial.printf("resolution result: %s\n", *it);
+                if (!displayed)
+                {
+                    oled.drawStringMaxWidth(0, 5 * OLED_FONT_HEIGHT_PX, 200, String("OK :) ") + *it);
+                    displayed = true;
+                }
+                Serial.printf("%s: TXT response: %s\n", __func__, *it);
                 free(*it);
             }
+            free(result);
         }
-        free(result);
+        oled.display();
         free(dns_q);
         free(encoded_cmd);
         free(tracking_cmd);
+        gps_read(5);
     }
 }

@@ -83,7 +83,7 @@ void oled_disp_gps_data()
     oled.drawStringMaxWidth(0, 1 * OLED_FONT_HEIGHT_PX, 200, String("GPS sats: ") + data.satellites);
     // Date and time on the second line
     char text[OLED_MAX_LINE_LEN];
-    snprintf(text, OLED_MAX_LINE_LEN, "UTC %d-%d-%d %d:%d:%d", data.utc_year, data.utc_month, data.utc_day, data.utc_hour, data.utc_minute, data.utc_second);
+    snprintf(text, OLED_MAX_LINE_LEN, "UTC%d-%02d-%02d %02d:%02d:%02d", data.utc_year, data.utc_month, data.utc_day, data.utc_hour, data.utc_minute, data.utc_second);
     oled.drawStringMaxWidth(0, 2 * OLED_FONT_HEIGHT_PX, 200, text);
     // Coordinates are converted from DD.DDDDDD to DD MM SS
     char north_south = 'N';
