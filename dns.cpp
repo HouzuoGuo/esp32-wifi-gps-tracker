@@ -3,7 +3,7 @@
 #include <lwip/sockets.h>
 #include "dns.hh"
 
-char **resolve_txt(char *resolver_ip, int port, char *name, int timeout_sec)
+char **dns_resolve_txt(char *resolver_ip, int port, char *name, int timeout_sec)
 {
     struct timeval io_timeout = {.tv_sec = timeout_sec, .tv_usec = 0};
     ssize_t recv_size;
@@ -35,8 +35,8 @@ char **resolve_txt(char *resolver_ip, int port, char *name, int timeout_sec)
     char *query_packet = (char *)malloc(query_len);
     memcpy(query_packet, query_headers, query_len);
     // Break down the query name into labels
-    char *name_copy = (char *)malloc(strlen(name) + 1);
-    strcpy(name_copy, name);
+    char name_copy[254] = {};
+    strncpy(name_copy, name, sizeof(name_copy));
     for (char *label = strtok(name_copy, "."); label != NULL; label = strtok(NULL, "."))
     {
         size_t label_len = strlen(label);
@@ -143,6 +143,5 @@ clean_up:
         close(sock);
     }
     free(query_packet);
-    free(name_copy);
     return ret;
 }

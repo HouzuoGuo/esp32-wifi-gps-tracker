@@ -29,8 +29,7 @@ void wifi_scan()
     for (int i = 0; i < num_stations; ++i)
     {
         const char *ssid = WiFi.SSID(i).c_str();
-        const char *mac = WiFi.BSSIDstr(i).c_str();
-        if (strlen(ssid) == 0 || strlen(mac) == 0)
+        if (strlen(ssid) == 0)
         {
             // Ignore hidden SSID
             continue;
@@ -38,6 +37,7 @@ void wifi_scan()
         struct wifi_access_point ap;
         strncpy(ap.ssid, ssid, sizeof(ap.ssid));
         ap.ssid[sizeof(ap.ssid) - 1] = NULL;
+        const char *mac = WiFi.BSSIDstr(i).c_str();
         strncpy(ap.mac, mac, sizeof(ap.mac));
         ap.mac[sizeof(ap.mac) - 1] = NULL;
         ap.rssi = WiFi.RSSI(i);

@@ -36,10 +36,10 @@ void loop()
     oled.display();
     wifi_scan();
     // Display open APs and all APs
-    //oled_disp_open_aps();
-    // gps_read(5);
-    // oled_disp_all_aps();
-    // gps_read(5);
+    oled_disp_open_aps();
+    gps_read(5);
+    oled_disp_all_aps();
+    gps_read(5);
     // Connect to an open AP or the fallback home AP
     oled.clear();
     struct wifi_access_point open_ap;
@@ -69,28 +69,29 @@ void loop()
     // Send a message processor command to laitos server
     if (WiFi.isConnected())
     {
-        struct gps_data data = gps_get_data();
-        int code1 = twofa_generate_code(LAITOS_PASS, data.unix_time / 30);
-        Serial.printf("twofa code: %d\n", code1);
-        int code2 = twofa_generate_code(LAITOS_PASS_REVERSE, data.unix_time / 30);
-        Serial.printf("twofa code: %d\n", code2);
+        struct gps_data gps_data = gps_get_data();
+        // Collect list of nearly WiFi APs
+        char *nearby_aps[5] = {};
+        for (int i = 0; i < wifi_ap_result_next && i < 5; ++i)
+        {
+            nearby_aps[i] = wifi_aps[i].ssid;
+            Serial.printf("nearby wifi %d: %s\n", i, nearby_aps[i]);
+        }
 
-        char cmd[254] = {};
-        Serial.printf("ssid: %s\n", WiFi.SSID().c_str());
-        snprintf(cmd, sizeof(cmd), "%d%d.0m%s%c", code1, code2, WiFi.SSID().c_str(), SUBJ_REPORT_FIELD_SEP);
-        Serial.printf("cmd: %s\n", cmd);
+        char *tracking_cmd = laitos_get_tracking_cmd(WiFi.SSID().c_str(), gps_data, nearby_aps);
+        Serial.printf("tracking cmd: %s\n", tracking_cmd);
 
-        char *app_cmd = get_app_cmd_with_dtmf(cmd);
-        Serial.printf("app_cmd: %s\n", app_cmd);
+        char *encoded_cmd = laitos_encode_dtmf_sequences(tracking_cmd);
+        Serial.printf("after encoding: %s\n", encoded_cmd);
 
-        char *dns_q = get_laitos_dns_query(app_cmd, LAITOS_DOMAIN_NAME);
+        char *dns_q = laitos_get_dns_query_name(encoded_cmd, LAITOS_DOMAIN_NAME);
         Serial.printf("query: %s\n", dns_q);
 
         char dns_srv[32] = {};
         strcpy(dns_srv, WiFi.dnsIP().toString().c_str());
         Serial.printf("dns_srv: %s\n", dns_srv);
 
-        char **result = resolve_txt(dns_srv, 53, dns_q, 3);
+        char **result = dns_resolve_txt(dns_srv, 53, dns_q, 3);
         if (result == NULL)
         {
             Serial.println("resolution failure");
@@ -98,12 +99,15 @@ void loop()
         else
         {
             Serial.println("resolution succeeded");
-            for (char **it = result; *it != NULL; ++*it)
+            for (char **it = result; *it != NULL; ++it)
             {
                 Serial.printf("resolution result: %s\n", *it);
+                free(*it);
             }
         }
+        free(result);
         free(dns_q);
-        free(app_cmd);
+        free(encoded_cmd);
+        free(tracking_cmd);
     }
 }

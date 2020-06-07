@@ -6,11 +6,11 @@
 #define DNS_TXT_TYPE_CLASS 0, 16, 0, 1
 
 /*
- * resolve_txt sends the DNS recursive resolver a TXT query and returns TXT
+ * dns_resolve_txt sends the DNS recursive resolver a TXT query and returns TXT
  * response entries in a string array, terminated with NULL.
- * Caller must free the string array and its elements.
+ * Caller must free the string array elements and the array itself.
  * In case of invalid parameter input or IO error, the function returns NULL.
  */
-char **resolve_txt(char *resolver_ip, int port, char *name, int timeout_sec);
+char **dns_resolve_txt(char *resolver_ip, int port, char *name, int timeout_sec);
 
 #endif // include guard
