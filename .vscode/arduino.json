@@ -1,5 +1,5 @@
 {
-    "port": "COM9",
+    "port": "COM5",
     "board": "esp32:esp32:t-beam",
     "configuration": "PSRAM=disabled,FlashFreq=80,UploadSpeed=921600,DebugLevel=none",
     "sketch": "main.ino"
