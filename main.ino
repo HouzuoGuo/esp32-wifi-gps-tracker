@@ -107,6 +107,7 @@ void loop()
         oled.drawStringMaxWidth(0, 2 * OLED_FONT_HEIGHT_PX, 200, String("To: ") + LAITOS_DOMAIN_NAME);
         oled.drawStringMaxWidth(0, 3 * OLED_FONT_HEIGHT_PX, 200, String("Via WiFi: ") + WiFi.SSID());
         oled.drawStringMaxWidth(0, 4 * OLED_FONT_HEIGHT_PX, 200, String("DNS server: ") + WiFi.dnsIP().toString());
+        oled.display();
 
         char **result = dns_resolve_txt(dns_srv, 53, dns_q, 3);
         if (result == NULL)
